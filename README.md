@@ -16,8 +16,6 @@ Project Organization
     │   ├── processed      <- The final, canonical data sets for modeling.
     │   └── raw            <- The original, immutable data dump.
     │
-    ├── models             <- Trained and serialized models, model predictions, or model summaries
-    │
     ├── processing         <- Functions which are used for visualization and data processing
     │
     ├── reports            <- Generated analysis as HTML, PDF, LaTeX, etc.
