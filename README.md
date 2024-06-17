@@ -1,4 +1,4 @@
-asymm_age_progression_clean
+Longitudinal changes in brain asymmetry track lifestyle and disease
 ==============================
 
 This repository contains the code associated with the maunscript entitled 'Longitudinal changes in brain asymmetry track lifestyle and disease'. It  builds upon asymmetry patterns described in ["Dissociable brain structural asymmetry patterns reveal unique phenome-wide profiles"](https://doi.org/10.1038/s41562-022-01461-0).
@@ -19,8 +19,6 @@ Project Organization
     ├── models             <- Trained and serialized models, model predictions, or model summaries
     │
     ├── processing         <- Functions which are used for visualization and data processing
-    │
-    ├── references         <- Data dictionaries, manuals, and all other explanatory materials.
     │
     ├── reports            <- Generated analysis as HTML, PDF, LaTeX, etc.
     │   └── figures        <- Generated graphics and figures to be used in reporting
