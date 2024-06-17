@@ -1,0 +1,21 @@
+# local package
+-e .
+
+# external requirements
+click
+Sphinx
+coverage
+awscli
+flake8
+python-dotenv>=0.5.1
+
+# Karin Added
+tqdm
+seaborn
+openpyxl
+statsmodels>=0.12.2
+scikit-learn
+adjustText
+ipython
+nilearn
+openpyxl
