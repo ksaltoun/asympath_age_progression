@@ -895,9 +895,154 @@ pca_sq.explained_variance_ratio_
 pccomp[0].abs().nlargest()
 
 
-# Not to do with PCA
-# Correlation of R2 scores across patterns
-plt.figure()
-sns.heatmap(r2_all_ptrn[labels[0:33]].corr(), square=True, linecolor='k', linewidth=0.1)
-plt.title("Correlation of R2 Scores")
-plt.tight_layout()
+############################################################################################
+# Editors wanted violin plots instead of bar charts
+
+
+VIS_FOLDER = 'reports/Project2_Longitudional/Long_Fig_Drafts/Fig2_Phenome/Violin_Plot_0325'
+
+USE_ABS = True; SAVE_FOLDER = 'data/interim/231118_pred_abs_change_from_phenome'
+USE_ABS = False; SAVE_FOLDER = 'data/interim/231118_pred_change_from_phenome'
+
+ptrn = 'Pattern 6'
+for ptrn_num in tqdm(range(1, 33+1)):
+    ptrn = f'Pattern {ptrn_num}'
+    r2_curr1 = pd.read_csv(os.path.join(SAVE_FOLDER, ptrn, f'r2_bounds_{ptrn}_change.csv'), index_col=0)
+    r2_curr2 = pd.read_csv(os.path.join(SAVE_FOLDER, ptrn, f'r2_bounds_{ptrn}.csv'), index_col=0)
+    r2_ptrn = pd.concat([r2_curr1, r2_curr2])
+
+    r2_curr1 = pd.read_csv(os.path.join(SAVE_FOLDER, ptrn, f'r2_all_{ptrn}_change.csv'), index_col=0)
+    r2_curr2 = pd.read_csv(os.path.join(SAVE_FOLDER, ptrn, f'r2_all_{ptrn}.csv'), index_col=0)
+    r2_ptrn_all = r2_curr1.merge(r2_curr2, left_index=True, right_index=True)
+
+    r2_ptrn = r2_ptrn.sort_index()
+    r2_ptrn['color'] = r2_ptrn.index.map(lambda x: cat_short_rev[x.split('_Change')[0]])
+    r2_ptrn['color'] = r2_ptrn['color'].map(lambda x: colors[x])
+    r2_ptrn['hatch'] = r2_ptrn.index.map(lambda x: 'xxx' if '_Change' in x else None)
+
+    # Decide when to switch colours
+    lns = r2_ptrn.index.map(lambda x: x.split('_Change')[0])
+    lns = [lns[i] != lns[i-1] for i in range(1,len(r2_ptrn))]
+    lns = [True, *lns]
+
+    # Make adjustments to the r2_ptrn_all
+    # To fit the order of what we have
+    # And to select only adjusted
+    r2style = '_Adj' # Or _Org
+    r2_ptrn_all_cut = r2_ptrn_all.filter(like=r2style, axis=1)
+    r2_ptrn_all_cut.columns = [c.split(r2style)[0] for c in r2_ptrn_all_cut.columns]
+    r2_ptrn_all_cut = r2_ptrn_all_cut[r2_ptrn.index]
+
+    # -----------------------------
+    # Initialize layout in polar coordinates
+    fig, ax = plt.subplots(figsize=(8,8), subplot_kw={"projection": "polar"})
+
+    # Set background color to white, both axis and figure.
+    ANGLES = np.linspace(0.03, 2 * np.pi - 0.03, len(r2_ptrn), endpoint=False)
+    # r2_all_ptrn.index.map(lambda x: x.split('_Change')[0])
+    Y_LIM = 0.3
+    theta_offset = 0.8* np.pi / 2
+    ax.set_theta_offset(theta_offset)
+    ax.set_ylim(-0.1, Y_LIM)
+
+    # Add geometries to the plot -------------------------------------
+    # See the zorder to manipulate which geometries are on top
+
+    # # Add bars to represent the cumulative track lengths
+    # ax.bar(ANGLES, r2_all_ptrn[ptrn], color=r2_all_ptrn['color'],
+    #         edgecolor='k', hatch=r2_all_ptrn['hatch'], alpha=0.9, width=0.22, zorder=10)
+    # ax.bar(ANGLES, r2_ptrn['Mean_Adj'], color=r2_ptrn['color'],
+    #         edgecolor='k', hatch=r2_ptrn['hatch'], alpha=0.9, width=0.22, zorder=10,
+    #         capsize=0, yerr= r2_ptrn[[f'Lower_{th}_Adj', f'Upper_{100-th}_Adj']].T.values)
+
+
+
+    # Plot violin plots
+    violin_parts = ax.violinplot(r2_ptrn_all_cut, positions=ANGLES, widths=0.22, showmeans=True, showextrema=True, showmedians=False)
+
+    # Customize each violin with color and hatch pattern
+    for i, pc in enumerate(violin_parts['bodies']):
+
+
+        # Apply the hatch pattern
+        pc.set_hatch(r2_ptrn['hatch'][i])
+        # Apply the color
+        pc.set_facecolor(r2_ptrn['color'][i])
+        pc.set_alpha(0.9)
+        pc.set_edgecolor('k')  # Optional, edge color
+
+
+    # Adjust the appearance of the lines (violins) specifically if needed
+    for partname in ['cbars', 'cmins', 'cmaxes', 'cmeans']:
+        vp = violin_parts[partname]
+        vp.set_edgecolor((0, 0, 0, 0.5))  # Set the edges of these elements to softened black
+
+    # Add dashed vertical lines. These are just references
+    ax.vlines(ANGLES[lns]-0.15, -0.1, Y_LIM, color='k', ls=(0, (4, 4)), zorder=11)
+
+    # Fix Labels
+    clbl = r2_ptrn.index.map(lambda x: cat_short_rev[x.split('_Change')[0]])[lns]
+    for  angle, label, color in zip( ANGLES[lns], clbl, r2_ptrn['color'].values[lns]):
+        # Move some labels
+        if any(map(label.__contains__, ['ognitive', 'ental', 'eneral'])): # remove first letter bc case-sensitive
+            angle = angle + np.diff(ANGLES)[0]
+
+        # Labels are rotated. Rotation must be specified in degrees :(
+        rotation = np.rad2deg(angle + theta_offset)
+
+        # Flip some labels upside down
+        alignment = ""
+        if angle  <= np.pi:
+            alignment = "right"
+            rotation = rotation + 180
+        else:
+            alignment = "left"
+
+        # Finally add the labels
+        ax.text(
+            x=angle - 0.02,
+            y=Y_LIM-0.05,
+            s=label,
+            ha=alignment,
+            va='center',
+            color = color,
+            rotation=rotation,
+            size=10,
+            rotation_mode="anchor")
+
+    # Add Legend
+    import matplotlib.patches as mpatches
+
+    a_val = 0.6
+    circ1 = mpatches.Patch( facecolor='grey',edgecolor='k', alpha=a_val,hatch=None,label='Baseline')
+    circ2= mpatches.Patch( facecolor='grey',edgecolor='k', alpha=a_val,hatch='xxx',label='Change')
+
+
+    ax.legend(handles = [circ1,circ2],loc=7, fontsize=10)
+
+    ax.set_xticks([])
+    ax.xaxis.grid(False)
+    # Remove spines
+    ax.spines["start"].set_color("none")
+    ax.spines["polar"].set_color("none")
+
+    # Add Labels for R2 Score
+    PAD = 0.0040
+    locs, lbls = plt.yticks()
+    for lc, lb in zip(locs, lbls):
+        ax.text(-0.2 * np.pi / 2, lc + PAD, f'{lc:.2f}', ha="center", size=8)
+    ax.set_yticklabels([])
+    ax.text(-0.2 * np.pi / 2+0.14, Y_LIM/2, "Adjusted R2", ha="left",
+            rotation = np.rad2deg(-0.2 * np.pi / 2+theta_offset), size=10)
+
+    ax.text(0, -0.1, *[ptrn+' MBAC' if USE_ABS else ptrn+' LBAC'], ha="center", size=12, zorder = 12,
+            bbox=dict(facecolor='white', alpha=0.8, linewidth=0))
+
+    # Add line at y=0
+    fig = plt.gcf()
+    max_wind_circle = plt.Circle((0, 0), 0.1, transform=ax.transData._b,
+                    fill=False, edgecolor='k', linewidth=2, alpha=1, zorder=9)
+    fig.gca().add_artist(max_wind_circle)
+
+    plt.savefig(os.path.join(VIS_FOLDER, f"behav2brain_{'MBAC' if USE_ABS else 'LBAC'}", f"behav2brain_ptrn{ptrn_num}_{'MBAC' if USE_ABS else 'LBAC'}_violin.pdf"))
+    plt.close()
